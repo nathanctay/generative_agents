@@ -101,10 +101,20 @@ class MemoryTree:
     if not curr_arena: 
       return ""
 
+        # SANITIZE: Remove stray JSON brackets that the LLM might have hallucinated
+    clean_arena = curr_arena.replace("{", "").replace("}", "").replace("[", "").replace("]", "").strip()
+
     try: 
-      x = ", ".join(list(self.tree[curr_world][curr_sector][curr_arena]))
-    except: 
-      x = ", ".join(list(self.tree[curr_world][curr_sector][curr_arena.lower()]))
+      x = ", ".join(list(self.tree[curr_world][curr_sector][clean_arena]))
+    except KeyError: 
+      try:
+        x = ", ".join(list(self.tree[curr_world][curr_sector][clean_arena.lower()]))
+      except KeyError:
+        # GRACEFUL FALLBACK: If the room name is completely invalid, return an empty 
+        # string. The agent's logic will catch this and just pick a random object 
+        # in the sector, preventing the simulation from crashing.
+        x = ""
+    
     return x
 
 

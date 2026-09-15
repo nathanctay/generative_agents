@@ -89,7 +89,9 @@ def execute(persona, maze, personas, plan):
       # string form. <maze.address_tiles> takes this and returns candidate 
       # coordinates. 
       if plan not in maze.address_tiles: 
-        maze.address_tiles["Johnson Park:park:park garden"] #ERRORRRRRRR
+        # Fallback: if the planned location doesn't exist on the map,
+        # just stay at the current location
+        target_tiles = [persona.scratch.curr_tile]
       else: 
         target_tiles = maze.address_tiles[plan]
 
