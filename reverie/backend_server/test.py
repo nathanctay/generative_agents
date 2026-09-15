@@ -1,40 +1,43 @@
 """
-Author: Joon Sung Park (joonspk@stanford.edu)
-
-File: gpt_structure.py
-Description: Wrapper functions for calling OpenAI APIs.
+File: test.py
+Description: Test script to verify local LLM can generate multi-agent dialogue in JSON.
 """
-import json
-import random
-import openai
-import time 
+import sys
+import os
+# Fix the import path issue
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from utils import *
-openai.api_key = openai_api_key
+import json
+import openai
+
+# Initialize the modern OpenAI client pointing to your local Ollama server
+client = openai.OpenAI(
+    base_url="http://localhost:11434/v1",
+    api_key="ollama"
+)
+
+LOCAL_CHAT_MODEL = "qwen2.5:7b"
 
 def ChatGPT_request(prompt): 
-  """
-  Given a prompt and a dictionary of GPT parameters, make a request to OpenAI
-  server and returns the response. 
-  ARGS:
-    prompt: a str prompt
-    gpt_parameter: a python dictionary with the keys indicating the names of  
-                   the parameter and the values indicating the parameter 
-                   values.   
-  RETURNS: 
-    a str of GPT-3's response. 
-  """
-  # temp_sleep()
-  try: 
-    completion = openai.ChatCompletion.create(
-    model="gpt-3.5-turbo", 
-    messages=[{"role": "user", "content": prompt}]
-    )
-    return completion["choices"][0]["message"]["content"]
-  
-  except: 
-    print ("ChatGPT ERROR")
-    return "ChatGPT ERROR"
+    try: 
+        response = client.chat.completions.create(
+            model=LOCAL_CHAT_MODEL, 
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.0,
+            # CRITICAL: Forces the model to output ONLY valid JSON
+            response_format={"type": "json_object"}, 
+            extra_body={
+                "options": {
+                    "num_ctx": 8192
+                }
+            }
+        )
+        return response.choices[0].message.content
+    
+    except Exception as e: 
+        print(f"Ollama Chat ERROR: {e}")
+        return "Ollama ERROR"
+
 
 prompt = """
 ---
@@ -42,10 +45,10 @@ Character 1: Maria Lopez is working on her physics degree and streaming games on
 Character 2: Klaus Mueller is writing a research paper on the effects of gentrification in low-income communities.
 
 Past Context: 
-138 minutes ago, Maria Lopez and Klaus Mueller were already conversing about conversing about Maria's research paper mentioned by Klaus This context takes place after that conversation.
+138 minutes ago, Maria Lopez and Klaus Mueller were already conversing about Maria's research paper mentioned by Klaus. This context takes place after that conversation.
 
 Current Context: Maria Lopez was attending her Physics class (preparing for the next lecture) when Maria Lopez saw Klaus Mueller in the middle of working on his research paper at the library (writing the introduction).
-Maria Lopez is thinking of initating a conversation with Klaus Mueller.
+Maria Lopez is thinking of initiating a conversation with Klaus Mueller.
 Current Location: library in Oak Hill College
 
 (This is what is in Maria Lopez's head: Maria Lopez should remember to follow up with Klaus Mueller about his thoughts on her research paper. Beyond this, Maria Lopez doesn't necessarily know anything more about Klaus Mueller) 
@@ -56,21 +59,26 @@ Here is their conversation.
 
 Maria Lopez: "
 ---
-Output the response to the prompt above in json. The output should be a list of list where the inner lists are in the form of ["<Name>", "<Utterance>"]. Output multiple utterances in ther conversation until the conversation comes to a natural conclusion.
+Output the response to the prompt above in json. The output should be a list of list where the inner lists are in the form of ["<Name>", "<Utterance>"]. Output multiple utterances in the conversation until the conversation comes to a natural conclusion.
 Example output json:
-{"output": "[["Jane Doe", "Hi!"], ["John Doe", "Hello there!"] ... ]"}
+{"output": [["Jane Doe", "Hi!"], ["John Doe", "Hello there!"]]}
 """
 
-print (ChatGPT_request(prompt))
+print("Sending request to local Ollama (qwen2.5:7b)...")
+print("-" * 50)
 
+raw_response = ChatGPT_request(prompt)
 
+# CRITICAL CLEANUP: Strip markdown backticks if the model adds them anyway
+cleaned_response = raw_response.strip().replace("```json", "").replace("```", "").strip()
 
+print(cleaned_response)
+print("-" * 50)
 
-
-
-
-
-
-
-
-
+# Try to parse it
+try:
+    parsed = json.loads(cleaned_response)
+    print("\n✅ SUCCESS: Output is valid JSON!")
+    print("Parsed output:", json.dumps(parsed, indent=2))
+except json.JSONDecodeError as e:
+    print(f"\n❌ WARNING: Output is NOT valid JSON. Error: {e}")
