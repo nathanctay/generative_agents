@@ -16,7 +16,7 @@ client = openai.OpenAI(
     api_key="ollama"
 )
 
-LOCAL_CHAT_MODEL = "qwen2.5:7b"
+LOCAL_CHAT_MODEL = "llama3.1:8b-instruct-q5_K_M"
 
 def ChatGPT_request(prompt): 
     try: 
@@ -64,7 +64,7 @@ Example output json:
 {"output": [["Jane Doe", "Hi!"], ["John Doe", "Hello there!"]]}
 """
 
-print("Sending request to local Ollama (qwen2.5:7b)...")
+print("Sending request to local Ollama (llama3.1:8b-instruct-q5_K_M)...")
 print("-" * 50)
 
 raw_response = ChatGPT_request(prompt)

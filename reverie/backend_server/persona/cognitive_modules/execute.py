@@ -12,6 +12,27 @@ from global_methods import *
 from path_finder import *
 from utils import *
 
+def resolve_address_tiles(maze, address, fallback_tile):
+  """
+  Look up the tiles for a string address. LLM output often mangles
+  apostrophes and spacing (e.g., "Lopezs" vs "Lopez's"), so if there is no
+  exact match we compare normalized versions of the addresses. Falls back to
+  the persona's current tile if nothing matches.
+  """
+  if address in maze.address_tiles:
+    return maze.address_tiles[address]
+
+  def normalize(x):
+    return (x.lower().replace("'", "").replace("’", "")
+             .replace(" ", ""))
+
+  normalized = normalize(address)
+  for key in maze.address_tiles:
+    if normalize(key) == normalized:
+      return maze.address_tiles[key]
+  return [fallback_tile]
+
+
 def execute(persona, maze, personas, plan): 
   """
   Given a plan (action's string address), we execute the plan (actually 
@@ -79,8 +100,12 @@ def execute(persona, maze, personas, plan):
     elif "<random>" in plan: 
       # Executing a random location action.
       plan = ":".join(plan.split(":")[:-1])
-      target_tiles = maze.address_tiles[plan]
-      target_tiles = random.sample(list(target_tiles), 1)
+      
+      target_tiles = resolve_address_tiles(maze, plan,
+                                           persona.scratch.curr_tile)
+      
+      if len(target_tiles) > 1:
+        target_tiles = random.sample(list(target_tiles), 1)
 
     else: 
       # This is our default execution. We simply take the persona to the
@@ -88,12 +113,8 @@ def execute(persona, maze, personas, plan):
       # Retrieve the target addresses. Again, plan is an action address in its
       # string form. <maze.address_tiles> takes this and returns candidate 
       # coordinates. 
-      if plan not in maze.address_tiles: 
-        # Fallback: if the planned location doesn't exist on the map,
-        # just stay at the current location
-        target_tiles = [persona.scratch.curr_tile]
-      else: 
-        target_tiles = maze.address_tiles[plan]
+      target_tiles = resolve_address_tiles(maze, plan, 
+                                           persona.scratch.curr_tile)
 
     # There are sometimes more than one tile returned from this (e.g., a tabe
     # may stretch many coordinates). So, we sample a few here. And from that 

@@ -149,10 +149,14 @@ def reflection_trigger(persona):
   print (persona.scratch.name, "persona.scratch.importance_trigger_curr::", persona.scratch.importance_trigger_curr)
   print (persona.scratch.importance_trigger_max)
 
-  if (persona.scratch.importance_trigger_curr <= 0 and 
-      [] != persona.a_mem.seq_event + persona.a_mem.seq_thought): 
-    return True 
+  # DISABLED FOR POc: Always return False to prevent heavy reflection calls
   return False
+
+  # Original logic (counts down to 0):
+  # if (persona.scratch.importance_trigger_curr <= 0 and 
+  #     [] != persona.a_mem.seq_event + persona.a_mem.seq_thought): 
+  #   return True 
+  # return False
 
 
 def reset_reflection_counter(persona): 

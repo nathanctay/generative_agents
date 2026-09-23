@@ -96,8 +96,10 @@ class MemoryTree:
     EXAMPLE STR OUTPUT
       "phone, charger, bed, nightstand"
     """
-    curr_world, curr_sector, curr_arena = arena.split(":")
-
+    parts = arena.split(":", 2)
+    if len(parts) < 3: return ""
+    curr_world, curr_sector, curr_arena = parts
+    
     if not curr_arena: 
       return ""
 
